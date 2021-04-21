@@ -44,8 +44,9 @@ import socket
 # then set connection_string_default = /dev/ttyTHS2
 # if you are using the Auvidea J120 board, then set
 # connection_string_default=/dev/ttyTHS1
+# if you are using mavlink_router include the IP address for the ROS connection here
 
-connection_string_default = '127.0.0.1:14655'
+connection_string_default = '127.0.0.1:14855'
 connection_baudrate_default = 1500000
 
 # Use this to rotate all processed data
@@ -244,6 +245,8 @@ def ahrs2_msg_callback(value):
 
 def zed_dist_callback(msg):
     print(msg.header)
+    #print(msg.header.time)
+    #print(msg.header.frame_id)
     print(msg.angle_min)
     print(msg.angle_max)
     print(msg.angle_increment)
@@ -303,16 +306,12 @@ sched.start()
 
 # Begin of the main loop
 last_time = time.time()
-while not rospy.is_shutdown():
-    #print("in main loop")
-    # Store the timestamp for MAVLink messages
-    current_time_us = int(round(time.time() * 1000000))
-
-    last_time = time.time()
-
+# Store the timestamp for MAVLink messages
+current_time_us = int(round(time.time() * 1000000))
+rospy.spin()
 
 mavlink_thread_should_exit = True
 mavlink_thread.join()
 conn.close()
-progress("INFO: Realsense pipe and vehicle object closed.")
+progress("INFO: ZED pipe and vehicle object closed.")
 sys.exit(exit_code)
