@@ -90,6 +90,7 @@ last_obstacle_distance_sent_ms = 0  # value of current_time_us when obstacle_dis
 distances_array_length = 72
 angle_offset = None
 increment_f  = None
+debug_enable = 1
 
 ######################################################
 ##  Parsing user' inputs                            ##
@@ -167,13 +168,17 @@ def mavlink_loop(conn, callbacks):
 def send_obstacle_distance_message():
     global current_time_us, distances, camera_facing_angle_degree
     global last_obstacle_distance_sent_ms
-    if current_time_us == last_obstacle_distance_sent_ms:
+    #if current_time_us == last_obstacle_distance_sent_ms:
         # no new frame
-        return
-    last_obstacle_distance_sent_ms = current_time_us
+    #    progress("no new frame")
+    #    return
+    #last_obstacle_distance_sent_ms = current_time_us
     if angle_offset is None or increment_f is None:
         progress("Please call set_obstacle_distance_params before continue")
+        print(angle_offset, increment_f)
     else:
+        send_msg_to_gcs('Sending obstacle distance message')
+        progress("new frame")
         conn.mav.obstacle_distance_send(
             current_time_us,    # us Timestamp (UNIX time or time since system boot)
             0,                  # sensor_type, defined here: https://mavlink.io/en/messages/common.html#MAV_DISTANCE_SENSOR
@@ -185,6 +190,7 @@ def send_obstacle_distance_message():
             angle_offset,       # angle_offset, float,          deg
             12                  # MAV_FRAME, vehicle-front aligned: https://mavlink.io/en/messages/common.html#MAV_FRAME_BODY_FRD    
         )
+        current_time_us = int(round(time.time() * 1000000))
 
 # https://mavlink.io/en/messages/common.html#DISTANCE_SENSOR
 def send_single_distance_sensor_msg(distance, orientation):
@@ -244,18 +250,14 @@ def ahrs2_msg_callback(value):
         progress("INFO: Received AHRS2 msg, current pitch is %.2f degrees" % (m.degrees(vehicle_pitch_rad)))
 
 def zed_dist_callback(msg):
+    distances=msg.ranges*100
+    min_depth_cm=int(msg.range_min*100)
+    max_depth_cm=int(msg.range_max*100)
+    increment_f=msg.angle_increment
+    angle_offset=msg.angle_min
     print(msg.header)
     #print(msg.header.time)
     #print(msg.header.frame_id)
-    print(msg.angle_min)
-    print(msg.angle_max)
-    print(msg.angle_increment)
-    print(msg.time_increment)
-    print(msg.scan_time)
-    print(msg.range_min)
-    print(msg.range_max)
-    print(msg.ranges)
-    print(msg.intensities)
 
 
 
@@ -299,7 +301,7 @@ else:
     send_msg_to_gcs('Nothing to do. Check params to enable something')
     pipe.stop()
     conn.mav.close()
-    progress("INFO: Realsense pipe and vehicle object closed.")
+    progress("INFO: ZED pipe and Mavlink connection closed.")
     sys.exit()
 
 sched.start()
