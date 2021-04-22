@@ -90,6 +90,7 @@ last_obstacle_distance_sent_ms = 0  # value of current_time_us when obstacle_dis
 distances_array_length = 72
 angle_offset = None
 increment_f  = None
+distances = np.ones((distances_array_length,), dtype=np.uint16) * (2000 + 1)
 debug_enable = 1
 
 ######################################################
@@ -114,7 +115,6 @@ connection_string = args.connect
 connection_baudrate = args.baudrate
 obstacle_distance_msg_hz = args.obstacle_distance_msg_hz
 debug_enable = args.debug_enable
-camera_name = args.camera_name
 
 def progress(string):
     print(string, file=sys.stdout)
@@ -168,17 +168,16 @@ def mavlink_loop(conn, callbacks):
 def send_obstacle_distance_message():
     global current_time_us, distances, camera_facing_angle_degree
     global last_obstacle_distance_sent_ms
-    #if current_time_us == last_obstacle_distance_sent_ms:
+    if current_time_us == last_obstacle_distance_sent_ms:
         # no new frame
-    #    progress("no new frame")
-    #    return
-    #last_obstacle_distance_sent_ms = current_time_us
+        progress("no new frame")
+        return
+    last_obstacle_distance_sent_ms = current_time_us
     if angle_offset is None or increment_f is None:
-        progress("Please call set_obstacle_distance_params before continue")
-        print(angle_offset, increment_f)
+        progress("obstacle_distance_params not properly set")
     else:
-        send_msg_to_gcs('Sending obstacle distance message')
-        progress("new frame")
+        #send_msg_to_gcs('Sending obstacle distance message')
+        #progress("new frame")
         conn.mav.obstacle_distance_send(
             current_time_us,    # us Timestamp (UNIX time or time since system boot)
             0,                  # sensor_type, defined here: https://mavlink.io/en/messages/common.html#MAV_DISTANCE_SENSOR
@@ -192,19 +191,6 @@ def send_obstacle_distance_message():
         )
         current_time_us = int(round(time.time() * 1000000))
 
-# https://mavlink.io/en/messages/common.html#DISTANCE_SENSOR
-def send_single_distance_sensor_msg(distance, orientation):
-    # Average out a portion of the centermost part
-    conn.mav.distance_sensor_send(
-        0,                  # ms Timestamp (UNIX time or time since system boot) (ignored)
-        min_depth_cm,       # min_distance, uint16_t, cm
-        max_depth_cm,       # min_distance, uint16_t, cm
-        distance,           # current_distance,	uint16_t, cm	
-        0,	                # type : 0 (ignored)
-        0,                  # id : 0 (ignored)
-        orientation,        # orientation
-        0                   # covariance : 0 (ignored)
-    )
 
 # https://mavlink.io/en/messages/common.html#DISTANCE_SENSOR
 def send_distance_sensor_message():
@@ -224,7 +210,7 @@ def send_distance_sensor_message():
 
 def send_msg_to_gcs(text_to_be_sent):
     # MAV_SEVERITY: 0=EMERGENCY 1=ALERT 2=CRITICAL 3=ERROR, 4=WARNING, 5=NOTICE, 6=INFO, 7=DEBUG, 8=ENUM_END
-    text_msg = 'D4xx: ' + text_to_be_sent
+    text_msg = 'ROS2Mav: ' + text_to_be_sent
     conn.mav.statustext_send(mavutil.mavlink.MAV_SEVERITY_INFO, text_msg.encode())
     progress("INFO: %s" % text_to_be_sent)
 
@@ -242,33 +228,20 @@ def att_msg_callback(value):
     if debug_enable == 1:
         progress("INFO: Received ATTITUDE msg, current pitch is %.2f degrees" % (m.degrees(vehicle_pitch_rad),))
 
-# Listen to AHRS2 data: https://mavlink.io/en/messages/ardupilotmega.html#AHRS2
-def ahrs2_msg_callback(value):
-    global vehicle_pitch_rad
-    vehicle_pitch_rad = value.pitch
-    if debug_enable == 1:
-        progress("INFO: Received AHRS2 msg, current pitch is %.2f degrees" % (m.degrees(vehicle_pitch_rad)))
-
+# Listen to ZED ROS node for SLAM data
 def zed_dist_callback(msg):
-    distances=msg.ranges*100
+    global distances, angle_offset, increment_f, min_depth_cm, max_depth_cm
+    distances=np.array([i*100 for i in msg.ranges]).astype(int)
     min_depth_cm=int(msg.range_min*100)
     max_depth_cm=int(msg.range_max*100)
-    increment_f=msg.angle_increment
+    increment_f=msg.angle_increment+0.3
     angle_offset=msg.angle_min
-    print(msg.header)
-    #print(msg.header.time)
-    #print(msg.header.frame_id)
 
 
 
 ######################################################
 ##  Main code starts here                           ##
 ######################################################
-
-rospy.init_node('listener')
-rospy.loginfo('listener node started')
-rospy.Subscriber('/darknet_ros/distance_array', LaserScan, zed_dist_callback)
-
 
 progress("INFO: Starting Vehicle communications")
 conn = mavutil.mavlink_connection(
@@ -280,13 +253,15 @@ conn = mavutil.mavlink_connection(
     force_connected=True,
 )
 mavlink_callbacks = {
-    'ATTITUDE': att_msg_callback,
+#    'ATTITUDE': att_msg_callback,
 }
 mavlink_thread = threading.Thread(target=mavlink_loop, args=(conn, mavlink_callbacks))
 mavlink_thread.start()
 
-send_msg_to_gcs('Connecting to camera...')
-send_msg_to_gcs('Camera connected.')
+send_msg_to_gcs('Connecting to ROS node...')
+rospy.init_node('listener')
+rospy.Subscriber('/darknet_ros/distance_array', LaserScan, zed_dist_callback)
+send_msg_to_gcs('ROS node connected')
 
 # Send MAVlink messages in the background at pre-determined frequencies
 sched = BackgroundScheduler()

@@ -32,7 +32,7 @@ from sensor_msgs.msg import LaserScan
 
 # Sensor parameters
 DEPTH_RANGE_M = [1, 20.0]       # Range for the ZED camera
-depth_hfov_deg = 85
+depth_hfov_deg = 86
 
 # Get the top-level logger object
 log = logging.getLogger(__name__)
@@ -43,29 +43,11 @@ obstacle_line_thickness_pixel = 1
 
 # Obstacle distances in front of the sensor, starting from the left in increment degrees to the right
 # See here: https://mavlink.io/en/messages/common.html#OBSTACLE_DISTANCE
-min_depth_cm = int(DEPTH_RANGE_M[0] * 100)  # In cm
-max_depth_cm = int(DEPTH_RANGE_M[1] * 100)  # In cm, should be a little conservative
 distances_array_length = 72
 angle_offset = None
 increment_f  = None
-distances = np.ones((distances_array_length), dtype=np.float) * (max_depth_cm + 1)
-
-
-def sample(probs):
-    s = sum(probs)
-    probs = [a/s for a in probs]
-    r = random.uniform(0, 1)
-    for i in range(len(probs)):
-        r = r - probs[i]
-        if r <= 0:
-            return i
-    return len(probs)-1
-
-
-def c_array(ctype, values):
-    arr = (ctype*len(values))()
-    arr[:] = values
-    return arr
+#distances = np.ones((distances_array_length), dtype=np.float) * (max_depth_cm + 1)
+distances = np.ones((distances_array_length), dtype=np.float)
 
 
 class BOX(Structure):
@@ -332,32 +314,29 @@ def distances_from_depth_image(point_cloud_mat, distances, min_depth_m, max_dept
     
     for i in range(distances_array_length):
 
-        dist_arr=[]
         # do the depth sensing at each individual segment and take the mean value over the obstacle line thickness
-        for j in range(int(obstacle_line_thickness_pixel)):
-            err, point_cloud_value = point_cloud_mat.get_value((int(i*step)), ((int(height-obstacle_line_thickness_pixel/2))+j))
-            dist_m = math.sqrt(point_cloud_value[0] * point_cloud_value[0] +
-                                 point_cloud_value[1] * point_cloud_value[1] +
-                                 point_cloud_value[2] * point_cloud_value[2])
-            dist_arr.append(dist_m)
+        err, point_cloud_value = point_cloud_mat.get_value((int(i*step)), height)
+        dist_m = math.sqrt(point_cloud_value[0] * point_cloud_value[0] +
+                             point_cloud_value[1] * point_cloud_value[1] +
+                             point_cloud_value[2] * point_cloud_value[2])
             #Remove nan and inf values
-            dist_arr = [x for x in dist_arr if math.isnan(x) == False]
-            dist_arr = [x for x in dist_arr if math.isinf(x) == False]
 
-        #determine mean value over obstacle line thickness
-        dist_m=np.mean(dist_arr)
 
         # Default value, unless overwritten: 
         #   A value of max_distance + 1 (cm) means no obstacle is present. 
         #   A value of UINT16_MAX (65535) for unknown/not used.
-        distances[i] = 655.35
+        # Remove nan and inf values
 
         if dist_m >= min_depth_m and dist_m <= max_depth_m:
             distances[i] = dist_m
         elif dist_m < min_depth_m:
             distances[i] = 0
+        elif dist_m >= max_depth_m:
+            distances[i] = 20.01
         elif np.isnan(dist_m):
             distances[i] = 0
+        elif np.isinf(dist_m):
+            distances[i] = 655.35
 
     #print ("final distances array in m: ", distances)
 
@@ -480,7 +459,7 @@ def main(argv):
     res.width = width
     res.height = height
     angle_offset = 0 - (depth_hfov_deg / 2)
-    increment_f = depth_hfov_deg / distances_array_length
+    increment_f = depth_hfov_deg / (distances_array_length)
 
     #Initialize laserscan node
     scan = LaserScan()
