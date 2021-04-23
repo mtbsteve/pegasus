@@ -18,9 +18,9 @@ The 3D parts needed to build a simple 1-axis [gimbal] (https://github.com/mtbste
 ### Software requirements
 - ZED SDK 3.4.2 or higher including the ZED Python wrapper
 - ROS Melodic full installation including rospy 
-- APSync needs to be installed on the TX2 for the mavlink and GCS communication https://github.com/mtbsteve/companion/blob/master/Nvidia_JTX2_JP42/Ubuntu/1_create_base_image_tx2_JP44.txt
+- APSync needs to be installed on the TX2 for the mavlink and GCS communication see: https://github.com/mtbsteve/companion/tree/master/Nvidia_JTX2_JP44/Ubuntu
 - Python3 along with numpy, pymavlink, pyserial, apscheduler
-- Darknet/yolov4 https://github.com/AlexeyAB/darknet with the yolov4-tiny dataset the TX2 is capable of 12-15FPS processing speed which is sufficient for visualization in flight and object detection.
+- Darknet/yolov4 https://github.com/AlexeyAB/darknet With the yolov4-tiny dataset, the TX2 is capable of 12-15FPS processing speed which is sufficient for visualization in flight and object detection.
 - Note that you need to install cvbridge and to compile it for Python3!
 - For video streaming of the different image nodes you need to install the ROS to RTSP node https://github.com/CircusMonkey/ros_rtsp
 
@@ -42,7 +42,9 @@ cd ..
 catkin build zed_yolo -DCMAKE_BUILD_TYPE=Release
 ```
 To start:
-roscore
+```
+roscore &
 rosrun zed_yolo zed_yolo_node.py
 rosrun zed_yolo zed_ros_to_mavlink.py
+```
 
