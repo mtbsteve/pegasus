@@ -41,11 +41,11 @@ git clone --recursive https://github.com/mtbsteve/pegasus.git
 cd ..
 catkin build zed_yolo -DCMAKE_BUILD_TYPE=Release
 ```
-This project provides two ROS nodes, `zed_yolo zed_yolo_node.py` and `zed_yolo zed_ros_to_mavlink.py`. The first node generates a point cloud and the left camera image from by the ZED camaera stereo images. It runs the darknet-yolo detection and creates three ROS topics: ```
+This project provides two ROS nodes, `zed_yolo zed_yolo_node.py` and `zed_yolo zed_ros_to_mavlink.py`. The first node generates a point cloud and the left camera image from by the ZED camaera stereo images. It runs the darknet-yolo detection and creates three ROS topics:
+```
 /darknet_ros/color_image the left camera image with the distance to the next obstacle information in the the center of the image
 /darknet_ros/detection_image  the yolo view with the detected objects marked with a bounding box and average distance information from the camera
 /darknet_ros/distance_array  the information needed by the OBSTACLE_DISTANCE function of Mavlink
-```
 ```
 The image topics can be streamed with the ROS to RTSP node to any RTSP video stream capable ground station, eg QGroundControl, Mission Planner or Solex.
 
