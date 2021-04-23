@@ -234,7 +234,10 @@ def zed_dist_callback(msg):
     distances=np.array([i*100 for i in msg.ranges]).astype(int)
     min_depth_cm=int(msg.range_min*100)
     max_depth_cm=int(msg.range_max*100)
-    increment_f=msg.angle_increment+0.3
+    #increment_f=msg.angle_increment
+    # there appears to be a defect in the obstacle_distance function in Arducopter
+    # so we need to set the offset manually and cant take the officially calculated increment
+    increment_f=1.6
     angle_offset=msg.angle_min
 
 
