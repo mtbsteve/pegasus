@@ -11,6 +11,9 @@
 
 import sys
 sys.path.append("/usr/local/lib/")
+sys.path.append("/usr/include/")
+sys.path.append("/usr/share/")
+sys.path.append('/home/apsync/.local/lib/python3.7/site-packages/')
 
 # Set MAVLink protocol to 2.
 import os
@@ -277,7 +280,7 @@ def zed_dist_callback(msg):
     increment_f=msg.angle_increment
     # there appears to be a defect in the obstacle_distance function in Arducopter
     # so we need to set the offset manually and cant take the correct calculated increment
-    increment_f=1.7
+    increment_f=1.6
     angle_offset=msg.angle_min
 
 

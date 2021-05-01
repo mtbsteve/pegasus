@@ -12,6 +12,10 @@ Requires yolov4 lbdarknet.so compilation
 # pylint: disable=R, W0401, W0614, W0703
 import os
 import sys
+sys.path.append("/usr/local/lib/")
+sys.path.append("/usr/include/")
+sys.path.append("/usr/share/")
+sys.path.append('/home/apsync/.local/lib/python3.7/site-packages/')
 import time
 import logging
 import random
@@ -334,7 +338,7 @@ def distances_from_depth_image(point_cloud_mat, distances, min_depth_m, max_dept
         elif dist_m >= max_depth_m:
             distances[i] = 20.01
         elif np.isnan(dist_m):
-            distances[i] = 0
+            distances[i] = 20.01
         elif np.isinf(dist_m):
             distances[i] = 655.35
 
@@ -495,8 +499,8 @@ def main(argv):
     
             distances_from_depth_image(point_cloud_mat, distances, DEPTH_RANGE_M[0], DEPTH_RANGE_M[1], width, height, obstacle_line_thickness_pixel)
             scan.ranges = distances
-            array_midpoint=int(distances_array_length/2)
-            distance_center=distances[array_midpoint]
+            distance_center = np.mean(distances[34:38])
+
 
             # Publish the distance information for the mavros node
             pub2.publish(scan)
@@ -554,7 +558,11 @@ def main(argv):
 
             # convert image to ros
             imgMsg = bridge.cv2_to_imgmsg(image, encoding="bgra8")
+            imgMsg.header.stamp = rospy.Time.now()
+            imgMsg.header.frame_id = "color_image"
             imgMsg_lv = bridge.cv2_to_imgmsg(image_lv, encoding="bgra8")
+            imgMsg_lv.header.stamp = rospy.Time.now()
+            imgMsg_lv.header.frame_id = "yolo_image"
             # publish images to ros nodes
             pub.publish(imgMsg)
             pub3.publish(imgMsg_lv)
