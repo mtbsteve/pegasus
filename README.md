@@ -2,8 +2,9 @@
 ## Project Introduction
 In this project we use a ZED Stereo camera for 3D distance measurements and object detection based on Yolo for obstacle avoidance. The point cloud is processed on a Jetson TX2 and the resulting 3D distance information and data on detected obstacles is transferred to a Pixhawk flightcontroller. The Behaviour of the drone in case of detected obstacles ahead is handled in Arducopter's object avoidance functionality. For a detailed overview, see here: https://ardupilot.org/copter/docs/common-object-avoidance-landing-page.html and here: https://ardupilot.org/copter/docs/common-oa-bendyruler.html
 
-## Prerequisites
-This project runs on an Nvidia Jetson TX2 connected to Arducopter 4.0.7. The drone isbuilt on a Tarot frame.
+## Prerequisites 
+This project runs on an Nvidia Jetson TX2 connected to Arducopter 4.0.7. The drone is built on a Tarot frame.
+
 ![The Tarot 650 based copter used for this project](https://github.com/mtbsteve/redtail/blob/master/tools/images/image4.jpeg)
 
 ### Hardware requirements
