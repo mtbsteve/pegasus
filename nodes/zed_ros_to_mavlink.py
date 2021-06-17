@@ -32,7 +32,9 @@ from time import sleep
 from apscheduler.schedulers.background import BackgroundScheduler
 from pymavlink import mavutil
 import rospy
-from sensor_msgs.msg import LaserScan
+from sensor_msgs.msg import LaserScan, PointCloud, ChannelFloat32
+from geometry_msgs.msg import Point32
+
 
 # To obtain ip address
 import socket
@@ -64,6 +66,8 @@ enable_msg_distance_sensor = False
 obstacle_distance_msg_hz_default = 15.0
 curr_avoid_strategy=""
 prev_avoid_strategy=""
+# enable only if you are on Arducopter 4.1 or higher
+enable_3D_msg_obstacle_distance = False
 
 # lock for thread synchronization
 lock = threading.Lock()
@@ -96,6 +100,7 @@ distances_array_length = 72
 angle_offset = None
 increment_f  = None
 distances = np.ones((distances_array_length,), dtype=np.uint16) * (2000 + 1)
+mavlink_obstacle_coordinates = np.ones((9,3), dtype = np.float) * (9999)
 debug_enable = 1
 
 ######################################################
@@ -213,6 +218,29 @@ def send_distance_sensor_message():
             0               # covariance : 0 (ignored)
         )
 
+# Prepare for Arducopter 4.1 3D Obstacle Avoidance
+def send_obstacle_distance_3D_message():
+    global mavlink_obstacle_coordinates, min_depth_cm, max_depth_cm
+    global last_obstacle_distance_sent_ms
+
+    if (enable_3D_msg_obstacle_distance == True):
+        if current_time_ms == last_obstacle_distance_sent_ms:
+            # no new frame
+            return
+        last_obstacle_distance_sent_ms = current_time_ms
+        for i in range(9):
+            conn.mav.obstacle_distance_3d_send(
+                current_time_ms,    # us Timestamp (UNIX time or time since system boot)
+                0,
+                0,
+                65535,
+                float(mavlink_obstacle_coordinates[i][0]),
+                float(mavlink_obstacle_coordinates[i][1]),
+                float(mavlink_obstacle_coordinates[i][2]),
+                float(min_depth_cm/100),
+                float(max_depth_cm/100) #needs to be in meters
+            )
+
 def send_msg_to_gcs(text_to_be_sent):
     # MAV_SEVERITY: 0=EMERGENCY 1=ALERT 2=CRITICAL 3=ERROR, 4=WARNING, 5=NOTICE, 6=INFO, 7=DEBUG, 8=ENUM_END
     text_msg = 'ROS2Mav: ' + text_to_be_sent
@@ -269,7 +297,10 @@ def fltmode_msg_callback(value):
             send_msg_to_gcs('No valid flt mode for obstacle avoidance')
             prev_avoid_strategy=curr_avoid_strategy
 
-
+    if (enable_3D_msg_obstacle_distance == True):
+            enable_msg_obstacle_distance = False
+            enable_msg_distance_sensor = False
+            send_msg_to_gcs('Sending 3D obstacle distance messages to FCU')
 
 # Listen to ZED ROS node for SLAM data
 def zed_dist_callback(msg):
@@ -283,7 +314,16 @@ def zed_dist_callback(msg):
     increment_f=1.6
     angle_offset=msg.angle_min
 
-
+def zed_9sector_callback(msg):
+    global mavlink_obstacle_coordinates, min_depth_cm, max_depth_cm
+    min_depth_cm=int(msg.channels[0].values[0]*100)
+    max_depth_cm=int(msg.channels[0].values[1]*100)
+    #print(min_depth_cm, max_depth_cm)
+    for j in range(9):
+        mavlink_obstacle_coordinates[j][0] = msg.points[0].x
+        mavlink_obstacle_coordinates[j][1] = msg.points[1].y
+        mavlink_obstacle_coordinates[j][2] = msg.points[2].z
+    #print (mavlink_obstacle_coordinates)
 
 ######################################################
 ##  Main code starts here                           ##
@@ -302,6 +342,7 @@ conn = mavutil.mavlink_connection(
 send_msg_to_gcs('Connecting to ROS node...')
 rospy.init_node('listener')
 rospy.Subscriber('/darknet_ros/distance_array', LaserScan, zed_dist_callback)
+rospy.Subscriber('/darknet_ros/9sectorarray', PointCloud, zed_9sector_callback)
 send_msg_to_gcs('ROS node connected')
 sleep(1) # wait until the ROS node has booted
 # register the callbacks
@@ -317,6 +358,7 @@ sched = BackgroundScheduler()
 
 sched.add_job(send_obstacle_distance_message, 'interval', seconds = 1/obstacle_distance_msg_hz, id='obst_dist')
 sched.add_job(send_distance_sensor_message, 'interval', seconds = 1/obstacle_distance_msg_hz, id='dist_sensor')
+sched.add_job(send_obstacle_distance_3D_message, 'interval', seconds = 1/obstacle_distance_msg_hz, id='3d_obj_dist')
 
 sched.start()
 
