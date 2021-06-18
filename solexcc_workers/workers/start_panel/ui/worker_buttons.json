@@ -1,0 +1,58 @@
+{
+    "type": "LinearLayout",
+    "layout_width": "match_parent",
+    "layout_height": "wrap_content",
+    "orientation": "vertical",
+    "gravity": "center",
+    "background": "#88000000",
+    "children": [
+        {
+            "type": "TextView",
+            "layout_width": "match_parent",
+            "layout_height": "wrap_content",
+            "padding": 10,
+    	    "background": "blue",
+            "gravity": "center",
+            "text": "ZED Setup"
+        },
+        {
+            "type": "Button",
+            "id": "do_dialog1",
+            "layout_width": "match_parent",
+            "layout_height": "wrap_content",
+            "text": "ZED Video",
+            "textAllCaps": false,
+            "background": "black",
+            "on_click": {
+                "worker_id": "ZEDstart_panel",
+                "msg_id": "show_dialog1"
+            }
+        },
+        {
+            "type": "Button",
+            "id": "do_dialog2",
+            "layout_width": "match_parent",
+            "layout_height": "wrap_content",
+            "text": "Obstacle Avoidance",
+            "textAllCaps": false,
+            "background": "black",
+            "on_click": {
+                "worker_id": "ZEDstart_panel",
+                "msg_id": "show_dialog2"
+            }
+        },
+        {
+            "type": "Button",
+            "id": "do_dialog4",
+            "layout_width": "match_parent",
+            "layout_height": "wrap_content",
+            "text": "Shutdown Jetson TX2",
+            "textAllCaps": false,
+            "background": "red",
+            "on_click": {
+                "worker_id": "ZEDstart_panel",
+                "msg_id": "show_dialog4"
+            }
+        }
+    ]
+}
