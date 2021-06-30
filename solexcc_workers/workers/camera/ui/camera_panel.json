@@ -1,0 +1,134 @@
+{
+    "type": "LinearLayout",
+    "layout_width": "match_parent",
+    "layout_height": "match_parent",
+    "gravity": "center",
+    "orientation": "vertical",
+    "padding": 2,
+    "background": "#88000000",
+    "children": [
+      {
+        "type": "TextView",
+        "layout_width": "wrap_content",
+        "layout_height": "wrap_content",
+        "text": "ZED Camera",
+        "gravity": "center",
+        "textColor": "white",
+        "textSize": 18,
+        "paddingBottom": 8,
+        "background": "@null"
+      },
+      {
+        "type": "Space",
+        "layout_width": "match_parent",
+        "layout_height": 2,
+        "background": "white"
+      },
+      {
+        "type": "TextView",
+        "layout_width": "wrap_content",
+        "layout_height": "wrap_content",
+        "text": "Picture",
+        "gravity": "center",
+        "textColor": "white",
+        "textSize": 15,
+        "paddingBottom": 8,
+        "background": "@null"
+      },
+      {
+        "type": "ImageButton",
+        "id": "take_picture",
+        "layout_width": 180,
+        "layout_height": 180,
+        "background": "@null",
+        "icon": "$(img)/camera/shutter.png",
+        "scaleType": "fitCenter",
+        "on_click": {
+          "worker_id": "camera",
+          "msg_id": "take_picture"
+        }
+      },
+      {
+        "type": "Space",
+        "layout_width": "match_parent",
+        "layout_height": 2,
+        "background": "white"
+      },
+      {
+        "type": "TextView",
+        "layout_width": "wrap_content",
+        "layout_height": "wrap_content",
+        "text": "Video",
+        "gravity": "center",
+        "textColor": "white",
+        "textSize": 15,
+        "paddingBottom": 8,
+        "paddingTop": 8,
+        "background": "@null"
+      },
+      {
+        "type": "ImageButton",
+        "id": "btn_video",
+        "layout_width": 180,
+        "layout_height": 180,
+        "background": "@null",
+        "scaleType": "fitCenter",
+        "icon": "$(img)/camera/record_off.png",
+        "on_click": {
+          "worker_id": "camera",
+          "msg_id": "toggle_video"
+        }
+      },
+      {
+        "type": "Space",
+        "layout_width": "match_parent",
+        "layout_height": 2,
+        "background": "white"
+      },
+      {
+        "type": "TextView",
+        "layout_width": "match_parent",
+        "layout_height": "wrap_content",
+        "text": "Image Node",
+        "textSize": 15,
+        "gravity": "center"
+      },
+      {
+        "type": "Spinner",
+        "layout_width": "match_parent",
+        "layout_height": "wrap_content",
+        "id": "spin_image_mode", 
+        "name": "image_mode", 
+        "items": [
+          {"id": "videocolor", "text": "Video"},
+          {"id": "depthgrey", "text": "Depth"},
+          {"id": "yolocolor", "text": "YOLO"}
+        ],
+        "on_item_selected": {
+          "worker_id": "camera",
+          "msg_id": "set_image_mode"
+        }
+      },
+      {
+        "type": "Space",
+        "layout_width": "match_parent",
+        "layout_height": 2,
+        "background": "white"
+      },
+      {
+          "type": "ImageButton",
+          "id": "btn_cam_settings",
+          "layout_width": "wrap_content",
+          "layout_height": "wrap_content",
+          "layout_marginTop": "20dip",
+          "minWidth": "34dip",
+          "minHeight": "34dip",
+          "scaleType": "fitXY",
+          "icon": "$(img)/camera/ic_settings.png",
+          "background": "#33ffffff",
+          "on_click": {
+              "worker_id": "camera", "msg_id": "open_settings"
+          }
+      }
+    ]
+}

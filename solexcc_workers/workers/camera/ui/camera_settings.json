@@ -1,0 +1,71 @@
+{
+  "id": "camera_settings_dialog",
+  "screen_id": "flight",
+  "title": "ZED Camera Settings",
+  "layout": {
+    "type": "LinearLayout",
+    "layout_width": "match_parent",
+    "layout_height": "wrap_content",
+    "orientation": "vertical",
+    "gravity": "top",
+    "padding": "8dip",
+    "children": [
+        {
+            "type": "LinearLayout", "layout_width": "match_parent", "layout_height": "wrap_content", "orientation": "horizontal", 
+            "paddingTop": "12dip", "paddingBottom": "12dip",
+            "children": [
+                {
+                    "type": "TextView", "layout_width": "0dip", "layout_height": "wrap_content", "layout_weight": 1.0,
+                    "text": "ZED Video Resolution",  "textSize": 18
+                },
+                {
+                    "type": "Spinner", "id": "spin_video_res", "name": "video_res", "layout_width": "wrap_content", "layout_height": "wrap_content",
+                    "items": [
+                        {"id": "VGA", "text": "VGA"},
+                        {"id": "HD720", "text": "720p"},
+                        {"id": "HD1080", "text": "1080p"},
+                        {"id": "HD2K", "text": "2K"}
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "LinearLayout", "layout_width": "match_parent", "layout_height": "wrap_content", "orientation": "horizontal", 
+            "paddingTop": "12dip", "paddingBottom": "12dip",
+            "children": [
+                {
+                    "type": "TextView", "layout_width": "0dip", "layout_height": "wrap_content", "layout_weight": 1.0,
+                    "text": "ZED Video Framerate",  "textSize": 18
+                },
+                {
+                    "type": "Spinner", "id": "spin_video_fps", "name": "video_fps", "layout_width": "wrap_content", "layout_height": "wrap_content",
+                    "items": [
+                        {"id": "5fps", "text": "5 fps"},
+                        {"id": "10fps", "text": "10 fps"},
+                        {"id": "20fps", "text": "20 fps"},
+                        {"id": "30fps", "text": "30 fps"}
+                    ]
+                }
+            ]
+        }
+
+    ]
+  },
+  "buttons": [
+    {
+      "id": "cancel",
+      "text": "Cancel",
+      "on_click": {
+        "action": "dismiss"
+      }
+    },
+    {
+      "id": "ok",
+      "text": "Apply",
+      "on_click": {
+        "worker_id": "start_panel",
+        "msg_id": "my_dialog_ok"
+      }
+    }
+  ]
+}

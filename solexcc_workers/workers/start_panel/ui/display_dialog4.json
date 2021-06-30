@@ -1,0 +1,41 @@
+{
+    "id": "my_dialog4",
+    "screen_id": "start",
+    "title": "Shutdown Jetson TX2",
+    "layout": {
+        "type": "LinearLayout",
+        "layout_width": "match_parent",
+        "layout_height": "wrap_content",
+        "orientation": "vertical",
+        "gravity": "top",
+        "padding": 10,
+        "children": [
+            {
+                "type": "TextView",
+                "layout_width": "match_parent",
+                "layout_height": "wrap_content",
+                "padding": 30,
+      	        "background": "red",
+                "gravity": "center",
+                "text": "The Jetson TX2 Companion Computer will shutdown. Press Shutdown to continue or Cancel to abort."
+            }
+        ]
+    },
+    "buttons": [
+        {
+            "id": "cancel",
+            "text": "Cancel",
+            "on_click": {
+                "action": "dismiss"
+            }
+        },
+        {
+            "id": "stop",
+            "text": "Shutdown TX2",
+            "on_click": {
+                "worker_id": "ZEDstart_panel",
+                "msg_id": "shutdown_ok"
+            }
+        }
+    ]
+}

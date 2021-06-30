@@ -1,0 +1,49 @@
+{
+    "id": "my_dialog2",
+    "screen_id": "start",
+    "title": "Manage YOLO-Mavlink",
+    "layout": {
+        "type": "LinearLayout",
+        "layout_width": "match_parent",
+        "layout_height": "wrap_content",
+        "orientation": "vertical",
+        "gravity": "top",
+        "padding": 10,
+        "children": [
+            {
+                "type": "TextView",
+                "layout_width": "match_parent",
+                "layout_height": "wrap_content",
+                "padding": 30,
+      	        "background": "red",
+                "gravity": "center",
+                "text": "Startup of the Yolo2Mavlink node - click Start to launch or Stop to shutdown the node"
+            }
+        ]
+    },
+    "buttons": [
+        {
+            "id": "cancel",
+            "text": "Cancel",
+            "on_click": {
+                "action": "dismiss"
+            }
+        },
+        {
+            "id": "ok",
+            "text": "Start Yolo2Mavlink",
+            "on_click": {
+                "worker_id": "ZEDstart_panel",
+                "msg_id": "ros_trailnet_start"
+            }
+        },
+        {
+            "id": "stop",
+            "text": "Shutdown Yolo2Mavlink Node",
+            "on_click": {
+                "worker_id": "ZEDstart_panel",
+                "msg_id": "ros_trailnet_stop"
+            }
+        }
+    ]
+}

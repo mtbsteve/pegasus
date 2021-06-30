@@ -4,6 +4,7 @@ In this project we use a ZED Stereo camera for 3D distance measurements and obje
 
 ## Prerequisites 
 This project runs on an Nvidia Jetson TX2 connected to Arducopter 4.0.7. The drone is built on a Tarot frame.
+Note: the OBSTACLE_DISTANCE_3D method is implemented, requires Arducopter 4.1 or higher to operate
 
 ![The Tarot 650 based copter used for this project](https://github.com/mtbsteve/redtail/blob/master/tools/images/image4.jpeg)
 
@@ -27,6 +28,4 @@ This project runs on an Nvidia Jetson TX2 connected to Arducopter 4.0.7. The dro
 Please see the wiki (https://github.com/mtbsteve/pegasus/wiki) for installation details.
 
 ## Next steps
-
-- support of Arducopter 4.1 including the OBSTACLE_DISTANCE_3D message
 - Implement detected yolo objects as obstacles and send them to Ardupilot
