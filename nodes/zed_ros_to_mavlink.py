@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+
 ######################################################
 ##  ROS LidarScan node to MAVLink                   ##
 ######################################################
@@ -51,7 +52,7 @@ import socket
 # connection_string_default=/dev/ttyTHS1
 # if you are using mavlink_router include the IP address for the ROS connection here
 
-connection_string_default = '127.0.0.1:14855'
+connection_string_default = '127.0.0.1:5762'
 connection_baudrate_default = 1500000
 
 # Use this to rotate all processed data
@@ -62,12 +63,13 @@ device_id = None
 
 # Enable/disable each message/function individually
 enable_msg_obstacle_distance = False
+enable_3D_msg_obstacle_distance = False
 enable_msg_distance_sensor = False
 obstacle_distance_msg_hz_default = 15.0
 curr_avoid_strategy=""
 prev_avoid_strategy=""
 # enable only if you are on Arducopter 4.1 or higher
-enable_3D_msg_obstacle_distance = False
+ac_version_41 = True
 
 # lock for thread synchronization
 lock = threading.Lock()
@@ -100,6 +102,8 @@ distances_array_length = 72
 angle_offset = None
 increment_f  = None
 distances = np.ones((distances_array_length,), dtype=np.uint16) * (2000 + 1)
+# Obstacle distances in nine segments for the new OBSTACLE_DISTANCE_3D message
+# see here https://github.com/rishabsingh3003/Vision-Obstacle-Avoidance/blob/land_detection_final/Companion_Computer/d4xx_to_mavlink_3D.py
 mavlink_obstacle_coordinates = np.ones((9,3), dtype = np.float) * (9999)
 debug_enable = 1
 
@@ -183,6 +187,7 @@ def send_obstacle_distance_message():
             progress("no new frame")
             return
         last_obstacle_distance_sent_ms = current_time_us
+        print(distances)
         if angle_offset is None or increment_f is None:
             progress("obstacle_distance_params not properly set")
         else:
@@ -207,6 +212,7 @@ def send_distance_sensor_message():
     # Average out a portion of the centermost part
     if (enable_msg_distance_sensor == True):
         curr_dist = int(np.mean(distances[34:38]))
+        print(curr_dist)
         conn.mav.distance_sensor_send(
             0,# ms Timestamp (UNIX time or time since system boot) (ignored)
             min_depth_cm,   # min_distance, uint16_t, cm
@@ -222,21 +228,25 @@ def send_distance_sensor_message():
 def send_obstacle_distance_3D_message():
     global mavlink_obstacle_coordinates, min_depth_cm, max_depth_cm
     global last_obstacle_distance_sent_ms
-
+    global current_time_us
     if (enable_3D_msg_obstacle_distance == True):
-        if current_time_ms == last_obstacle_distance_sent_ms:
+        if current_time_us == last_obstacle_distance_sent_ms:
             # no new frame
+            progress("no new frame")
             return
-        last_obstacle_distance_sent_ms = current_time_ms
-        for i in range(9):
+        last_obstacle_distance_sent_ms = current_time_us
+        print(mavlink_obstacle_coordinates)
+        current_time_us = int(round(time.time() * 1000000))
+        for q in range(9):
+            print("we arein the 3d loop", q)
             conn.mav.obstacle_distance_3d_send(
-                current_time_ms,    # us Timestamp (UNIX time or time since system boot)
+                current_time_us,    # us Timestamp (UNIX time or time since system boot)
                 0,
-                0,
+                mavutil.mavlink.MAV_FRAME_BODY_FRD,
                 65535,
-                float(mavlink_obstacle_coordinates[i][0]),
-                float(mavlink_obstacle_coordinates[i][1]),
-                float(mavlink_obstacle_coordinates[i][2]),
+                float(mavlink_obstacle_coordinates[q][0]),
+                float(mavlink_obstacle_coordinates[q][1]),
+                float(mavlink_obstacle_coordinates[q][2]),
                 float(min_depth_cm/100),
                 float(max_depth_cm/100) #needs to be in meters
             )
@@ -267,40 +277,48 @@ def fltmode_msg_callback(value):
     global prev_avoid_strategy
     global enable_msg_distance_sensor
     global enable_msg_obstacle_distance
-    global distances
+    global enable_3D_msg_obstacle_distance
+    global distances, ac_version_41
     dist_arr=[0]*72
     curr_flight_mode = (value.base_mode, value.custom_mode)
-    if (((curr_flight_mode[0] == 89) and (curr_flight_mode[1] == 5)) or ((curr_flight_mode[0] == 81) and (curr_flight_mode[1] == 2))):
+    # print(curr_flight_mode)
+    if ((curr_flight_mode[1] == 5) or (curr_flight_mode[1] == 2)): # Loiter and AltHold only
         curr_avoid_strategy="simple_avoid"
         if (curr_avoid_strategy != prev_avoid_strategy):
             distances[distances>0]=0
             enable_msg_distance_sensor = True
+            enable_3D_msg_obstacle_distance = False
             enable_msg_obstacle_distance = False
             # send empty discance array as workaround for proyimity viewer defect
             conn.mav.obstacle_distance_send(0,0,dist_arr, 0,100,200,1,0,12)
             send_msg_to_gcs('Sending distance sensor messages to FCU')
             prev_avoid_strategy=curr_avoid_strategy
 
-    elif ((curr_flight_mode[0] == 89) and ((curr_flight_mode[1] == 3) or (curr_flight_mode[1] == 4) or (curr_flight_mode[1] == 6))):
+    elif ((curr_flight_mode[1] == 3) or (curr_flight_mode[1] == 4) or (curr_flight_mode[1] == 6)): # for Auto Guided and RTL modes
         curr_avoid_strategy="bendy_avoid"
         if (curr_avoid_strategy != prev_avoid_strategy):
-            enable_msg_obstacle_distance = True
-            enable_msg_distance_sensor = False
-            send_msg_to_gcs('Sending obstacle distance messages to FCU')
+            if (ac_version_41 == True): # only AC 4.1 or higher
+                enable_msg_obstacle_distance = False
+                enable_msg_distance_sensor = False
+                enable_3D_msg_obstacle_distance = True
+                print(enable_3D_msg_obstacle_distance)
+                send_msg_to_gcs('Sending 3D obstacle distance messages to FCU')
+            else:
+                enable_msg_obstacle_distance = True
+                enable_3D_msg_obstacle_distance = False
+                enable_msg_distance_sensor = False
+                send_msg_to_gcs('Sending obstacle distance messages to FCU')
             prev_avoid_strategy=curr_avoid_strategy
         
-    elif (curr_flight_mode[0] != 0) or (curr_flight_mode[1] != 0):
+    else:
         curr_avoid_strategy="none"
         if (curr_avoid_strategy != prev_avoid_strategy):
             enable_msg_obstacle_distance = False
             enable_msg_distance_sensor = False
+            enable_3D_msg_obstacle_distance = False
             send_msg_to_gcs('No valid flt mode for obstacle avoidance')
             prev_avoid_strategy=curr_avoid_strategy
 
-    if (enable_3D_msg_obstacle_distance == True):
-            enable_msg_obstacle_distance = False
-            enable_msg_distance_sensor = False
-            send_msg_to_gcs('Sending 3D obstacle distance messages to FCU')
 
 # Listen to ZED ROS node for SLAM data
 def zed_dist_callback(msg):
