@@ -1,9 +1,9 @@
 # Object detection and avoidance with Arducopter using a ZED Stereo Cam 
 ## Project Introduction
 In this project we use a ZED Stereo camera for 3D distance measurements and object detection. The following methods are implemented:
-https://mavlink.io/en/messages/common.html#OBSTACLE_DISTANCE (Arducopter 4.0.x and AltHold mode)
-https://mavlink.io/en/messages/common.html#MAV_DISTANCE_SENSOR (Arducopter 4.0.x)
-https://mavlink.io/en/messages/common.html#OBSTACLE_DISTANCE_3D (Arducopter 4.1.x in Loiter, Guided, Auto and RTL modes)
+- https://mavlink.io/en/messages/common.html#OBSTACLE_DISTANCE (Arducopter 4.0.x and AltHold mode)
+- https://mavlink.io/en/messages/common.html#MAV_DISTANCE_SENSOR (Arducopter 4.0.x)
+- https://mavlink.io/en/messages/ardupilotmega.html#OBSTACLE_DISTANCE_3D (Arducopter 4.1.x in Loiter, Guided, Auto and RTL modes)
 
 The point cloud is processed on a Jetson TX2 and the resulting distance information and data on detected obstacles is transferred to a Pixhawk flightcontroller. The Behaviour of the drone in case of detected obstacles ahead is handled in Arducopter's object avoidance functionality. For a detailed overview, see here: https://ardupilot.org/copter/docs/common-object-avoidance-landing-page.html and here: https://ardupilot.org/copter/docs/common-oa-bendyruler.html 
 
