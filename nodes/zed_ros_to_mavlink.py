@@ -52,7 +52,7 @@ import socket
 # connection_string_default=/dev/ttyTHS1
 # if you are using mavlink_router include the IP address for the ROS connection here
 
-connection_string_default = '127.0.0.1:5762'
+connection_string_default = '127.0.0.1:14855'
 connection_baudrate_default = 1500000
 
 # Use this to rotate all processed data
@@ -110,6 +110,7 @@ distances = np.ones((distances_array_length,), dtype=np.uint16) * (2000 + 1)
 # Obstacle distances in nine segments for the new OBSTACLE_DISTANCE_3D message
 # see here https://github.com/rishabsingh3003/Vision-Obstacle-Avoidance/blob/land_detection_final/Companion_Computer/d4xx_to_mavlink_3D.py
 mavlink_obstacle_coordinates = np.ones((9,3), dtype = np.float) * (9999)
+dist_debug = np.ones((9), dtype = np.float)
 debug_enable = 1
 
 ######################################################
@@ -242,11 +243,12 @@ def send_obstacle_distance_3D_message():
         last_obstacle_distance_sent_ms = current_time_ms
 
         for q in range(9):
-            #print(float(mavlink_obstacle_coordinates[q][0]),
-            #    float(mavlink_obstacle_coordinates[q][1]),
-            #    float(mavlink_obstacle_coordinates[q][2]))
+            # print(float(mavlink_obstacle_coordinates[q][0]),
+            #     float(mavlink_obstacle_coordinates[q][1]),
+            #     float(mavlink_obstacle_coordinates[q][2]))
 
             conn.mav.obstacle_distance_3d_send(
+            #print(
                 current_time_ms,    # ms Timestamp (UNIX time or time since system boot)
                 0,
                 mavutil.mavlink.MAV_FRAME_BODY_FRD,
@@ -293,13 +295,20 @@ def fltmode_msg_callback(value):
     if ((curr_flight_mode[1] == 5) or (curr_flight_mode[1] == 2)): # Loiter and AltHold only
         curr_avoid_strategy="simple_avoid"
         if (curr_avoid_strategy != prev_avoid_strategy):
-            distances[distances>0]=0
-            enable_msg_distance_sensor = True
-            enable_3D_msg_obstacle_distance = False
-            enable_msg_obstacle_distance = False
-            # send empty discance array as workaround for proyimity viewer defect
-            conn.mav.obstacle_distance_send(0,0,dist_arr, 0,100,200,1,0,12)
-            send_msg_to_gcs('Sending distance sensor messages to FCU')
+            if ((ac_version_41 == True) and (curr_flight_mode[1] == 5)): # only AC 4.1 or higher and LOITER
+                enable_msg_obstacle_distance = False
+                enable_msg_distance_sensor = False
+                enable_3D_msg_obstacle_distance = True
+                print(enable_3D_msg_obstacle_distance)
+                send_msg_to_gcs('Sending 3D obstacle distance messages to FCU')
+            else:    
+                distances[distances>0]=0
+                enable_msg_distance_sensor = True
+                enable_3D_msg_obstacle_distance = False
+                enable_msg_obstacle_distance = False
+                # send empty discance array as workaround for proximity viewer defect
+                conn.mav.obstacle_distance_send(0,0,dist_arr, 0,100,200,1,0,12)
+                send_msg_to_gcs('Sending distance sensor messages to FCU')
             prev_avoid_strategy=curr_avoid_strategy
 
     elif ((curr_flight_mode[1] == 3) or (curr_flight_mode[1] == 4) or (curr_flight_mode[1] == 6)): # for Auto Guided and RTL modes
@@ -318,7 +327,7 @@ def fltmode_msg_callback(value):
                 send_msg_to_gcs('Sending obstacle distance messages to FCU')
             prev_avoid_strategy=curr_avoid_strategy
         
-    else:
+    elif (curr_flight_mode[0] != 0):
         curr_avoid_strategy="none"
         if (curr_avoid_strategy != prev_avoid_strategy):
             enable_msg_obstacle_distance = False
@@ -335,21 +344,25 @@ def zed_dist_callback(msg):
     min_depth_cm=int(msg.range_min*100)
     max_depth_cm=int(msg.range_max*100)
     increment_f=msg.angle_increment
-    # there appears to be a defect in the obstacle_distance function in Arducopter
+    # there appears to be a defect in the obstacle_distance function in Arducopter 4.0.x
     # so we need to set the offset manually and cant take the correct calculated increment
-    increment_f=1.6
+    if (ac_version_41 == False):
+        increment_f=1.6
     angle_offset=msg.angle_min
 
 def zed_9sector_callback(msg):
     global mavlink_obstacle_coordinates, min_depth_cm, max_depth_cm
     min_depth_cm=int(msg.channels[0].values[0]*100)
     max_depth_cm=int(msg.channels[0].values[1]*100)
-    #print(min_depth_cm, max_depth_cm)
     for j in range(9):
-        mavlink_obstacle_coordinates[j][0] = msg.points[0].x
-        mavlink_obstacle_coordinates[j][1] = msg.points[1].y
-        mavlink_obstacle_coordinates[j][2] = msg.points[2].z
+        mavlink_obstacle_coordinates[j][0] = msg.points[j].z
+        mavlink_obstacle_coordinates[j][1] = (msg.points[j].x)
+        mavlink_obstacle_coordinates[j][2] = (-1*msg.points[j].y)
+        #dist_debug[j] = m.sqrt(mavlink_obstacle_coordinates[j][0] * mavlink_obstacle_coordinates[j][0] + mavlink_obstacle_coordinates[j][1] * mavlink_obstacle_coordinates[j][1] + mavlink_obstacle_coordinates[j][2] * mavlink_obstacle_coordinates[j][2])
+    print("\033c")
+    #print(min_depth_cm, max_depth_cm)
     #print (mavlink_obstacle_coordinates)
+    #print (dist_debug)
 
 ######################################################
 ##  Main code starts here                           ##

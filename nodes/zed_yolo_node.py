@@ -500,7 +500,8 @@ def main(argv):
             image = mat.get_data()
             cam.retrieve_image(mat_lv, sl.VIEW.LEFT)
             image_lv = mat_lv.get_data()
-            cam.retrieve_image(mat_9_sec, sl.VIEW.DEPTH)
+            # cam.retrieve_image(mat_9_sec, sl.VIEW.DEPTH)
+            cam.retrieve_image(mat_9_sec, sl.VIEW.LEFT)
             nine_sector_image = mat_9_sec.get_data()
             scan.header.stamp = current_time
             pointcloud.header.stamp = current_time
@@ -605,7 +606,10 @@ def main(argv):
             # Do the yolo object detection
             detections = detect(netMain, metaMain, image, thresh)
 
-            print(chr(27) + "[2J"+"**** " + str(len(detections)) + " Detection Results ****")
+            print(chr(27) + "[2J"+"**** "+ "9x3 matrix" + " Detection Results ****")
+            print(sector_obstacle_coordinates)
+            #print(chr(27) + "[2J"+"**** " + str(len(detections)) + " Detection Results ****")
+            print("[2J"+"**** " + str(len(detections)) + " Detection Results ****")
             for detection in detections:
                 label = detection[0]
                 confidence = detection[1]
