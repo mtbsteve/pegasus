@@ -5,11 +5,11 @@ In this project we use a ZED Stereo camera for 3D distance measurements and obje
 - https://mavlink.io/en/messages/common.html#MAV_DISTANCE_SENSOR (Arducopter 4.0.x)
 - https://mavlink.io/en/messages/ardupilotmega.html#OBSTACLE_DISTANCE_3D (Arducopter 4.1.x in Loiter, Guided, Auto and RTL modes)
 
-The point cloud is processed on a Jetson TX2 and the resulting distance information and data on detected obstacles is transferred to a Pixhawk flightcontroller. The Behaviour of the drone in case of detected obstacles ahead is handled in Arducopter's object avoidance functionality. For a detailed overview, see here: https://ardupilot.org/copter/docs/common-object-avoidance-landing-page.html and here: https://ardupilot.org/copter/docs/common-oa-bendyruler.html 
+The point cloud is processed on a Jetson TX2 and the resulting distance information and data on detected obstacles is transferred to a Pixhawk flightcontroller. The Behaviour of the drone in case of detected obstacles ahead is handled in Arducopter's object avoidance functionality. In addition, a YOLOv4 based object detection is implemented (not yet connected to the Arducopter obstacle database).
 
-In addition, a YOLOv4 based object detection is implemented (not yet connected to the Arducopter obstacle database)
+All further details and installation steps are explained in the wiki (https://github.com/mtbsteve/pegasus/wiki).
 
-The project is based on the work by Rishab Singh of the Arducoter Dev team https://github.com/rishabsingh3003/Vision-Obstacle-Avoidance and the Stereolabs ZED-YOLO implementation (https://github.com/stereolabs/zed-yolo)
+The project is based on the work by Rishab Singh of the Arducopter Dev team https://github.com/rishabsingh3003/Vision-Obstacle-Avoidance and the Stereolabs ZED-YOLO implementation (https://github.com/stereolabs/zed-yolo)
 
 ## Prerequisites 
 This project runs on an Nvidia Jetson TX2 connected to Arducopter 4.1.4. The drone is built on a Tarot frame.
