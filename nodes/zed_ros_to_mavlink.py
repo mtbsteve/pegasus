@@ -110,6 +110,7 @@ distances = np.ones((distances_array_length,), dtype=np.uint16) * (2000 + 1)
 # Obstacle distances in nine segments for the new OBSTACLE_DISTANCE_3D message
 # see here https://github.com/rishabsingh3003/Vision-Obstacle-Avoidance/blob/land_detection_final/Companion_Computer/d4xx_to_mavlink_3D.py
 mavlink_obstacle_coordinates = np.ones((9,3), dtype = np.float) * (9999)
+mavlink_yolo_obstacle_coordinates = np.ones((3), dtype = np.float) * (9999)
 dist_debug = np.ones((9), dtype = np.float)
 debug_enable = 1
 
@@ -232,7 +233,7 @@ def send_distance_sensor_message():
 
 # Prepare for Arducopter 4.1 3D Obstacle Avoidance
 def send_obstacle_distance_3D_message():
-    global mavlink_obstacle_coordinates, min_depth_cm, max_depth_cm
+    global mavlink_obstacle_coordinates, min_depth_cm, max_depth_cm, mavlink_yolo_obstacle_coordinates
     global last_obstacle_distance_sent_ms
     global current_time_ms
     if (enable_3D_msg_obstacle_distance == True):
@@ -243,12 +244,8 @@ def send_obstacle_distance_3D_message():
         last_obstacle_distance_sent_ms = current_time_ms
 
         for q in range(9):
-            # print(float(mavlink_obstacle_coordinates[q][0]),
-            #     float(mavlink_obstacle_coordinates[q][1]),
-            #     float(mavlink_obstacle_coordinates[q][2]))
-
+            # send 9 sector array
             conn.mav.obstacle_distance_3d_send(
-            #print(
                 current_time_ms,    # ms Timestamp (UNIX time or time since system boot)
                 0,
                 mavutil.mavlink.MAV_FRAME_BODY_FRD,
@@ -256,6 +253,18 @@ def send_obstacle_distance_3D_message():
                 float(mavlink_obstacle_coordinates[q][0]),
                 float(mavlink_obstacle_coordinates[q][1]),
                 float(mavlink_obstacle_coordinates[q][2]),
+                float(min_depth_cm/100),
+                float(max_depth_cm/100) #needs to be in meters
+            )
+            # send coordinates of detected yolo objects
+            conn.mav.obstacle_distance_3d_send(
+                current_time_ms,    # ms Timestamp (UNIX time or time since system boot)
+                0,
+                mavutil.mavlink.MAV_FRAME_BODY_FRD,
+                65535,
+                float(mavlink_yolo_obstacle_coordinates[0]),
+                float(mavlink_yolo_obstacle_coordinates[1]),
+                float(mavlink_yolo_obstacle_coordinates[2]),
                 float(min_depth_cm/100),
                 float(max_depth_cm/100) #needs to be in meters
             )
@@ -364,6 +373,14 @@ def zed_9sector_callback(msg):
     #print (mavlink_obstacle_coordinates)
     #print (dist_debug)
 
+def yolo_detect_point_callback(msg):
+    global mavlink_yolo_obstacle_coordinates
+    mavlink_yolo_obstacle_coordinates[0] = msg.z
+    mavlink_yolo_obstacle_coordinates[1] = (msg.x)
+    mavlink_yolo_obstacle_coordinates[2] = (-1*msg.y)
+    print(mavlink_yolo_obstacle_coordinates)
+
+
 ######################################################
 ##  Main code starts here                           ##
 ######################################################
@@ -382,6 +399,7 @@ send_msg_to_gcs('Connecting to ROS node...')
 rospy.init_node('listener')
 rospy.Subscriber('/darknet_ros/distance_array', LaserScan, zed_dist_callback)
 rospy.Subscriber('/darknet_ros/9sectorarray', PointCloud, zed_9sector_callback)
+rospy.Subscriber('/darknet_ros/yolo_detect_point', Point32, yolo_detect_point_callback)
 send_msg_to_gcs('ROS node connected')
 sleep(1) # wait until the ROS node has booted
 # register the callbacks

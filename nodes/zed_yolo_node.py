@@ -401,6 +401,7 @@ def main(argv):
     pub3 = rospy.Publisher('/darknet_ros/color_image', Image, queue_size=10)
     pub4 = rospy.Publisher('/darknet_ros/nine_sector_image', Image, queue_size=10)
     pub5 = rospy.Publisher('/darknet_ros/9sectorarray', PointCloud, queue_size=50)
+    pub6 = rospy.Publisher('/darknet_ros/yolo_detect_point', Point32, queue_size=50)
 
 
     cam = sl.Camera()
@@ -490,6 +491,9 @@ def main(argv):
     pointcloud = PointCloud()
     pointcloud.header.frame_id ='zed_9_sector_scan'
     pointcloud.channels = [channel]
+
+    # Initialize yolo_detect_point node
+    yolo_detect_point = Point32()
     
     while not rospy.is_shutdown():
         start_time = time.time() # start time of the loop
@@ -552,10 +556,10 @@ def main(argv):
             gy=0
             # draw sector lines on image
             while gx < (width*2):
-                cv2.line(nine_sector_image, (gx, 0), (gx, (height*2)), color=(0, 0, 255), thickness=2)
+                cv2.line(nine_sector_image, (gx, 0), (gx, (height*2)), color=(0, 0, 255), thickness=1)
                 gx += pxstep
             while gy <= (height*2):
-                cv2.line(nine_sector_image, (0, gy), ((width*2), gy), color=(0, 0, 255),thickness=2)
+                cv2.line(nine_sector_image, (0, gy), ((width*2), gy), color=(0, 0, 255),thickness=1)
                 gy += pystep
             # measure sector depth and printout in sectors
             gx = 0
@@ -575,9 +579,9 @@ def main(argv):
                 sector_obstacle_coordinates[i][2] = z
                 distance = math.sqrt(x * x + y * y + z * z)
                 distance = "{:.2f}".format(distance)
-                cv2.putText(nine_sector_image, "Dist.: " +  (str(distance) + " m"),
+                cv2.putText(nine_sector_image, " " +  (str(distance) + " m"),
                             ((gx+10), (gy + pystep-10)),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
                 gy += pystep
                 i += 1
 
@@ -590,9 +594,9 @@ def main(argv):
                     sector_obstacle_coordinates[i][2] = z
                     distance = math.sqrt(x * x + y * y + z * z)
                     distance = "{:.2f}".format(distance)
-                    cv2.putText(nine_sector_image, "Dist.: " +  (str(distance) + " m"),
+                    cv2.putText(nine_sector_image, " " +  (str(distance) + " m"),
                                 ((gx+10), (gy + pystep-10)),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
                     gy += pystep
                     i += 1
 
@@ -634,6 +638,27 @@ def main(argv):
                 cv2.rectangle(image, (x_coord - thickness, y_coord - thickness),
                               (x_coord + x_extent + thickness, y_coord + y_extent + thickness),
                               color_array[detection[3]], int(thickness*2))
+                
+                # Add visual detection results to the 9 sector image if the detected object is a person
+                # and publish the 3D center coordinate of the detected person objects to the mavlink node
+                if(detection[0]=="person"):
+                    cv2.rectangle(nine_sector_image, (x_coord - thickness, y_coord - thickness),
+                              (x_coord + x_extent + thickness, y_coord + (18 + thickness*4)),
+                              color_array[detection[3]], -1)
+                    cv2.putText(nine_sector_image, pstring + " " +  (str(distance) + " m"),
+                              (x_coord + (thickness * 4), y_coord + (10 + thickness * 4)),
+                              cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                    cv2.rectangle(nine_sector_image, (x_coord - thickness, y_coord - thickness),
+                              (x_coord + x_extent + thickness, y_coord + y_extent + thickness),
+                              color_array[detection[3]], int(thickness*2))
+                    
+                    # Publish center coordinates of detected persons to mavlink 
+                    yolo_detect_point.x = x
+                    yolo_detect_point.y = y
+                    yolo_detect_point.z = z
+                    print(yolo_detect_point)
+                    pub6.publish(yolo_detect_point)
+
 
             # convert image to ros
             imgMsg = bridge.cv2_to_imgmsg(image, encoding="bgra8")
