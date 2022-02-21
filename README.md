@@ -38,4 +38,4 @@ Note: the OBSTACLE_DISTANCE_3D functionality requires Arducopter 4.1 or higher t
 Please see the wiki (https://github.com/mtbsteve/pegasus/wiki) for installation details.
 
 ## Next steps
-- Implement detected yolo objects as obstacles and send them to Ardupilot
+- TBD
